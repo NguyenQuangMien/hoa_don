@@ -1,5 +1,5 @@
 streamlit
 pandas
-openpyxl
-python-docx
 pdfplumber
+python-docx
+openpyxl
