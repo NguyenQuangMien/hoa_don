@@ -41,7 +41,6 @@ if uploaded_files:
     if data_list:
         df = pd.DataFrame(data_list)
 
-        # Thay thế giá trị None hoặc rỗng bằng chuỗi trống
         df.fillna('', inplace=True)
 
         st.write(f"Đã trích xuất {len(df)} hóa đơn.")
