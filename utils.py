@@ -34,25 +34,17 @@ def extract_data_from_pdf(text):
     # Mã CSHT cố định
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Lấy ngày đầu kỳ, ngày cuối kỳ bằng cách tách dòng, tìm dòng chứa ngày
-    lines = text.split('\n')
-    date_start, date_end = '', ''
-    for line in lines:
-        if 'Điện tiêu thụ tháng' in line:
-            m = re.search(
-                r'từ ngày\s*(\d{1,2}/\d{1,2}/\d{4})\s*đến ngày\s*(\d{1,2}/\d{1,2}/\d{4})',
-                line, re.IGNORECASE
-            )
-            if m:
-                date_start = m.group(1)
-                date_end = m.group(2)
-                break
-    data['Ngày đầu kỳ'] = date_start
-    data['Ngày cuối kỳ'] = date_end
-
-    # Debug ngày
-    print("Ngày đầu kỳ:", date_start)
-    print("Ngày cuối kỳ:", date_end)
+    # Lấy ngày đầu kỳ, ngày cuối kỳ từ đoạn mô tả điện tiêu thụ
+    match_period = re.search(
+        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày (\d{1,2}/\d{1,2}/\d{4})',
+        text
+    )
+    if match_period:
+        data['Ngày đầu kỳ'] = match_period.group(1)
+        data['Ngày cuối kỳ'] = match_period.group(2)
+    else:
+        data['Ngày đầu kỳ'] = ''
+        data['Ngày cuối kỳ'] = ''
 
     # Tổng chỉ số (giữ nguyên chuỗi trong hóa đơn)
     match_kwh = re.search(r'kWh\s*([\d.,]+)', text)
