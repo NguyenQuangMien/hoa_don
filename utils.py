@@ -36,7 +36,7 @@ def extract_data_from_pdf(text):
 
     # Lấy ngày đầu kỳ, ngày cuối kỳ từ đoạn mô tả điện tiêu thụ
     match_period = re.search(
-        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày (\d{1,2}/\d{1,2}/\d{4})',
+        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày\s*\n?\s*(\d{1,2}/\d{1,2}/\d{4})',
         text
     )
     if match_period:
