@@ -34,10 +34,14 @@ def extract_data_from_pdf(text):
     # Mã CSHT cố định
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Lấy ngày đầu kỳ, ngày cuối kỳ từ đoạn mô tả điện tiêu thụ
+    # Chuẩn hóa chuỗi, thay thế xuống dòng và nhiều khoảng trắng thành 1 khoảng trắng
+    normalized_text = ' '.join(text.split())
+
+    # Regex lấy ngày đầu kỳ, ngày cuối kỳ có thể có từ "until"
     match_period = re.search(
-        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày\s*\n?\s*(\d{1,2}/\d{1,2}/\d{4})',
-        text
+        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày\s*(?:until\s*)?(\d{1,2}/\d{1,2}/\d{4})',
+        normalized_text,
+        flags=re.IGNORECASE
     )
     if match_period:
         data['Ngày đầu kỳ'] = match_period.group(1)
@@ -46,24 +50,22 @@ def extract_data_from_pdf(text):
         data['Ngày đầu kỳ'] = ''
         data['Ngày cuối kỳ'] = ''
 
-    # Tổng chỉ số (giữ nguyên chuỗi trong hóa đơn)
+    # Tổng chỉ số
     match_kwh = re.search(r'kWh\s*([\d.,]+)', text)
     data['Tổng chỉ số'] = match_kwh.group(1) if match_kwh else ''
 
-    # Số tiền nguyên bản
+    # Số tiền
     match_amount = re.search(r'Cộng tiền hàng \(Total amount\):\s*([\d.,]+)', text)
     if not match_amount:
         match_amount = re.search(r'Tổng cộng tiền thanh toán\s*:\s*([\d.,]+)', text)
     data['Số tiền'] = match_amount.group(1) if match_amount else ''
 
-    # Thuế VAT nguyên bản
+    # Thuế VAT
     match_vat = re.search(r'Tiền thuế GTGT \(VAT amount\):\s*([\d.,]+)', text)
     data['Thuế VAT'] = match_vat.group(1) if match_vat else ''
 
-    # Số tiền dự kiến nguyên bản (Thành tiền)
-    match_total = re.search(r'Thành tiền\s*:\s*([\d.,]+)', text)
-    if not match_total:
-        match_total = re.search(r'Tổng cộng thanh toán\s*:\s*([\d.,]+)', text)
+    # Số tiền dự kiến (Tổng cộng thanh toán)
+    match_total = re.search(r'Tổng cộng tiền thanh toán\s*:\s*([\d.,]+)', text)
     data['Số tiền dự kiến'] = match_total.group(1) if match_total else ''
 
     # Ghi chú để trống
