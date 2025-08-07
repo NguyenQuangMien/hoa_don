@@ -6,31 +6,32 @@ import re
 def extract_data_from_pdf(text):
     data = {}
 
-    # Ví dụ trích xuất Số hóa đơn
+    # Số hóa đơn
     match_invoice = re.search(r'Số \(No\):\s*(\d+)', text)
     data['Số hóa đơn'] = match_invoice.group(1) if match_invoice else ''
 
-    # Trích xuất Mã tỉnh (ví dụ giả định là YBI, có thể mở rộng regex nếu cần)
+    # Mã tỉnh (mặc định)
     data['Mã tỉnh'] = 'YBI'
 
-    # Mã tháng lấy theo định dạng trong file hoặc mặc định
+    # Mã tháng (yyyyMM) lấy theo ngày nếu có
     match_month = re.search(r'Ngày.*?(\d{2}) tháng (\d{2}) năm (\d{4})', text)
     if match_month:
         year = match_month.group(3)
         month = match_month.group(2)
         data['Mã tháng (yyyyMM)'] = f"{year}{month}"
     else:
-        data['Mã tháng (yyyyMM)'] = '202507'  # Mặc định nếu không tìm thấy
+        data['Mã tháng (yyyyMM)'] = '202507'  # mặc định
 
-    data['Kỳ'] = '1'  # Mặc định
+    # Kỳ (mặc định)
+    data['Kỳ'] = '1'
 
-    # Mã CSHT giả định hoặc trích xuất theo quy tắc riêng
+    # Mã CSHT (mặc định hoặc có thể sửa)
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Mã EVN - giả định hoặc có thể lấy từ file, hiện để cố định
+    # Mã EVN (mặc định hoặc có thể sửa)
     data['Mã EVN'] = 'PA10010142348'
 
-    # Ngày đầu kỳ và cuối kỳ trích xuất hoặc mặc định
+    # Ngày đầu kỳ và ngày cuối kỳ
     match_date_range = re.search(r'từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})', text)
     if match_date_range:
         data['Ngày đầu kỳ'] = match_date_range.group(1)
@@ -40,10 +41,10 @@ def extract_data_from_pdf(text):
         data['Ngày cuối kỳ'] = '21/07/2025'
 
     # Tổng chỉ số (số kWh)
-    match_total_kwh = re.search(r'(\d+)[ ]*kWh', text)
-    data['Tổng chỉ số'] = match_total_kwh.group(1) if match_total_kwh else ''
+    match_kwh = re.search(r'(\d+)\s*kWh', text)
+    data['Tổng chỉ số'] = match_kwh.group(1) if match_kwh else ''
 
-    # Số tiền chưa VAT
+    # Số tiền (chưa VAT)
     match_amount = re.search(r'Tổng cộng tiền thanh toán\s*:\s*([\d.,]+)', text)
     if not match_amount:
         match_amount = re.search(r'Thành tiền\s*:\s*([\d.,]+)', text)
@@ -61,7 +62,7 @@ def extract_data_from_pdf(text):
     else:
         data['Thuế VAT'] = ''
 
-    # Số tiền dự kiến = Số tiền + Thuế VAT (cộng kiểu số)
+    # Số tiền dự kiến = Số tiền + Thuế VAT
     try:
         s = int(data['Số tiền'])
         v = int(data['Thuế VAT'])
@@ -69,6 +70,7 @@ def extract_data_from_pdf(text):
     except:
         data['Số tiền dự kiến'] = ''
 
+    # Ghi chú
     data['Ghi chú'] = ''
 
     return data
@@ -91,8 +93,7 @@ def create_word(df):
         row_cells = table.add_row().cells
         for i, col_name in enumerate(df.columns):
             row_cells[i].text = str(row[col_name])
-    
+
     output = BytesIO()
     doc.save(output)
     return output.getvalue()
-
