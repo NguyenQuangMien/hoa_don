@@ -1,43 +1,63 @@
 import streamlit as st
 import pandas as pd
 import pdfplumber
-from utils import extract_data_from_pdf, create_excel, create_word
+import zipfile
 from io import BytesIO
+from utils import extract_data_from_pdf, create_excel, create_word
 
-st.title("Trích xuất dữ liệu hóa đơn PDF và xuất Excel, Word")
+st.title("Xử lý nhiều hóa đơn PDF hoặc ZIP")
 
-uploaded_file = st.file_uploader("Chọn file hóa đơn PDF", type=["pdf"])
+uploaded_files = st.file_uploader(
+    "Chọn nhiều file PDF hoặc file ZIP",
+    type=["pdf", "zip"],
+    accept_multiple_files=True
+)
 
-if uploaded_file:
-    with pdfplumber.open(uploaded_file) as pdf:
-        text = ""
-        for page in pdf.pages:
-            text += page.extract_text() + "\n"
-    
-    # Trích xuất dữ liệu từ text PDF
-    data = extract_data_from_pdf(text)
+data_list = []
 
-    if data:
-        df = pd.DataFrame([data])
-        st.write("Dữ liệu trích xuất:")
+if uploaded_files:
+    for uploaded_file in uploaded_files:
+        if uploaded_file.name.endswith('.zip'):
+            # Xử lý file zip
+            with zipfile.ZipFile(uploaded_file) as z:
+                for filename in z.namelist():
+                    if filename.endswith('.pdf'):
+                        with z.open(filename) as f:
+                            with pdfplumber.open(f) as pdf:
+                                text = ""
+                                for page in pdf.pages:
+                                    text += page.extract_text() + "\n"
+                            data = extract_data_from_pdf(text)
+                            if data:
+                                data_list.append(data)
+        else:
+            # Xử lý file PDF
+            with pdfplumber.open(uploaded_file) as pdf:
+                text = ""
+                for page in pdf.pages:
+                    text += page.extract_text() + "\n"
+            data = extract_data_from_pdf(text)
+            if data:
+                data_list.append(data)
+
+    if data_list:
+        df = pd.DataFrame(data_list)
+        st.write(f"Đã trích xuất {len(df)} hóa đơn.")
         st.dataframe(df)
 
-        # Tạo file Excel
         excel_file = create_excel(df)
         st.download_button(
-            label="Tải file Excel",
+            "Tải file Excel tổng hợp",
             data=excel_file,
-            file_name="data.xlsx",
+            file_name="hoa_don_tong_hop.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        # Tạo file Word
         word_file = create_word(df)
         st.download_button(
-            label="Tải file Word",
+            "Tải file Word tổng hợp",
             data=word_file,
-            file_name="data.docx",
+            file_name="hoa_don_tong_hop.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-    else:
-        st.error("Không thể trích xuất dữ liệu từ file PDF này.")
+
