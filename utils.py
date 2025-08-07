@@ -10,25 +10,25 @@ def extract_data_from_pdf(text):
     match_invoice = re.search(r'Số \(No\):\s*(\d+)', text)
     data['Số hóa đơn'] = match_invoice.group(1) if match_invoice else ''
 
-    # Mã tỉnh (mặc định)
+    # Mã tỉnh
     data['Mã tỉnh'] = 'YBI'
 
-    # Mã tháng (yyyyMM) lấy theo ngày nếu có
+    # Mã tháng (yyyyMM)
     match_month = re.search(r'Ngày.*?(\d{2}) tháng (\d{2}) năm (\d{4})', text)
     if match_month:
         year = match_month.group(3)
         month = match_month.group(2)
         data['Mã tháng (yyyyMM)'] = f"{year}{month}"
     else:
-        data['Mã tháng (yyyyMM)'] = '202507'  # mặc định
+        data['Mã tháng (yyyyMM)'] = '202507'
 
-    # Kỳ (mặc định)
+    # Kỳ
     data['Kỳ'] = '1'
 
-    # Mã CSHT (mặc định hoặc có thể sửa)
+    # Mã CSHT
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Mã EVN (mặc định hoặc có thể sửa)
+    # Mã EVN
     data['Mã EVN'] = 'PA10010142348'
 
     # Ngày đầu kỳ và ngày cuối kỳ
@@ -40,27 +40,27 @@ def extract_data_from_pdf(text):
         data['Ngày đầu kỳ'] = '22/06/2025'
         data['Ngày cuối kỳ'] = '21/07/2025'
 
-    # Tổng chỉ số (số kWh)
+    # Tổng chỉ số
     match_kwh = re.search(r'(\d+)\s*kWh', text)
     data['Tổng chỉ số'] = match_kwh.group(1) if match_kwh else ''
 
-    # Số tiền (chưa VAT)
+    # Số tiền
     match_amount = re.search(r'Tổng cộng tiền thanh toán\s*:\s*([\d.,]+)', text)
     if not match_amount:
         match_amount = re.search(r'Thành tiền\s*:\s*([\d.,]+)', text)
     if match_amount:
-        amount_str = match_amount.group(1).replace('.', '').replace(',', '')
+        amount_str = match_amount.group(1).replace(',', '').replace('.', '')
         data['Số tiền'] = amount_str
     else:
-        data['Số tiền'] = ''
+        data['Số tiền'] = '0'
 
     # Thuế VAT
     match_vat = re.search(r'Tiền thuế GTGT\s*:\s*([\d.,]+)', text)
     if match_vat:
-        vat_str = match_vat.group(1).replace('.', '').replace(',', '')
+        vat_str = match_vat.group(1).replace(',', '').replace('.', '')
         data['Thuế VAT'] = vat_str
     else:
-        data['Thuế VAT'] = ''
+        data['Thuế VAT'] = '0'
 
     # Số tiền dự kiến = Số tiền + Thuế VAT
     try:
@@ -68,7 +68,7 @@ def extract_data_from_pdf(text):
         v = int(data['Thuế VAT'])
         data['Số tiền dự kiến'] = str(s + v)
     except:
-        data['Số tiền dự kiến'] = ''
+        data['Số tiền dự kiến'] = '0'
 
     # Ghi chú
     data['Ghi chú'] = ''
