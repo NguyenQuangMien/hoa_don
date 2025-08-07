@@ -34,9 +34,9 @@ def extract_data_from_pdf(text):
     # Mã CSHT cố định
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Ngày đầu kỳ và ngày cuối kỳ theo chuỗi mô tả
+    # Ngày đầu kỳ và ngày cuối kỳ theo chuỗi mô tả, regex linh hoạt hơn
     match_period = re.search(
-        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})',
+        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày (\d{1,2}/\d{1,2}/\d{4})',
         text
     )
     if match_period:
@@ -45,6 +45,10 @@ def extract_data_from_pdf(text):
     else:
         data['Ngày đầu kỳ'] = ''
         data['Ngày cuối kỳ'] = ''
+
+    # Debug hiển thị ngày lấy được
+    print("Ngày đầu kỳ:", data['Ngày đầu kỳ'])
+    print("Ngày cuối kỳ:", data['Ngày cuối kỳ'])
 
     # Tổng chỉ số (giữ nguyên chuỗi trong hóa đơn)
     match_kwh = re.search(r'kWh\s*([\d.,]+)', text)
