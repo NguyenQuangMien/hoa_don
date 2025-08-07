@@ -1,54 +1,45 @@
 import streamlit as st
-import pandas as pd
-from io import BytesIO
-import zipfile
-
 from utils import extract_data_from_pdf, create_excel, create_word
 
-st.title("Ứng dụng trích xuất dữ liệu hóa đơn PDF")
+st.title("Trích xuất dữ liệu hóa đơn PDF và xuất Excel, Word")
 
 uploaded_files = st.file_uploader(
-    "Chọn nhiều file PDF hoặc file ZIP chứa PDF",
+    "Chọn nhiều file PDF hoặc file ZIP",
     type=["pdf", "zip"],
-    accept_multiple_files=True
+    accept_multiple_files=True,
 )
 
 data_list = []
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
-        if uploaded_file.name.endswith(".zip"):
-            # Giải nén và xử lý từng file PDF trong ZIP
-            with zipfile.ZipFile(uploaded_file) as z:
-                for filename in z.namelist():
-                    if filename.lower().endswith(".pdf"):
-                        with z.open(filename) as f:
-                            data = extract_data_from_pdf(f)
-                            if data:
-                                data_list.append(data)
-        elif uploaded_file.name.endswith(".pdf"):
-            data = extract_data_from_pdf(uploaded_file)
-            if data:
-                data_list.append(data)
+        # Trích xuất dữ liệu từ từng file
+        data = extract_data_from_pdf(uploaded_file)
+
+        # In dữ liệu thô ra màn hình để kiểm tra
+        st.write(f"Dữ liệu thô trích xuất từ file: {uploaded_file.name}")
+        st.json(data)
+
+        data_list.append(data)
 
     if data_list:
-        df = pd.DataFrame(data_list)
-        st.dataframe(df)
+        # Hiển thị bảng dữ liệu tổng hợp
+        st.dataframe(data_list)
 
-        # Xuất file Excel
-        excel_bytes = create_excel(data_list)
+        # Tạo file Excel và cung cấp nút tải
+        excel_data = create_excel(data_list)
         st.download_button(
             label="Tải file Excel",
-            data=excel_bytes,
+            data=excel_data,
             file_name="hoa_don.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        # Xuất file Word
-        word_bytes = create_word(data_list)
+        # Tạo file Word và cung cấp nút tải
+        word_data = create_word(data_list)
         st.download_button(
             label="Tải file Word",
-            data=word_bytes,
+            data=word_data,
             file_name="hoa_don.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
