@@ -6,13 +6,12 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment
 
 def extract_period(text):
-    # Bỏ hết dấu xuống dòng, tab, nhiều khoảng trắng thành 1 khoảng trắng
+    # Chuẩn hóa chuỗi text: bỏ xuống dòng, nhiều khoảng trắng thành 1 khoảng trắng
     normalized = re.sub(r'\s+', ' ', text)
 
-    # Lấy đoạn "Điện tiêu thụ tháng ... từ ngày ... đến ngày ..."
-    pattern = r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày (\d{1,2}/\d{1,2}/\d{4})'
+    # Tìm đoạn mô tả dạng "Điện tiêu thụ tháng 7 năm 2025 từ ngày 22/06/2025 đến ngày 21/07/2025"
+    pattern = r'Điện tiêu thụ tháng \d{1,2} năm \d{4} từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày (\d{1,2}/\d{1,2}/\d{4})'
     match = re.search(pattern, normalized, re.IGNORECASE)
-
     if match:
         return match.group(1), match.group(2)
     else:
@@ -45,7 +44,7 @@ def extract_data_from_pdf(text):
     data['Kỳ'] = '1'
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Lấy ngày đầu kỳ và ngày cuối kỳ bằng hàm mới
+    # Lấy ngày đầu kỳ và ngày cuối kỳ từ chuỗi mô tả hóa đơn
     ngay_dau, ngay_cuoi = extract_period(text)
     data['Ngày đầu kỳ'] = ngay_dau if ngay_dau else ''
     data['Ngày cuối kỳ'] = ngay_cuoi if ngay_cuoi else ''
