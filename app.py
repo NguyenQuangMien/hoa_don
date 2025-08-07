@@ -41,11 +41,8 @@ if uploaded_files:
     if data_list:
         df = pd.DataFrame(data_list)
 
-        # Đảm bảo các cột không bị rỗng
-        df['Số tiền'] = df['Số tiền'].replace('', '0').fillna('0')
-        df['Thuế VAT'] = df['Thuế VAT'].replace('', '0').fillna('0')
-        df['Số tiền dự kiến'] = df['Số tiền dự kiến'].replace('', '0').fillna('0')
-        df['Ghi chú'] = df['Ghi chú'].fillna('')
+        # Thay thế giá trị None hoặc rỗng bằng chuỗi trống
+        df.fillna('', inplace=True)
 
         st.write(f"Đã trích xuất {len(df)} hóa đơn.")
         st.dataframe(df)
