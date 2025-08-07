@@ -1,4 +1,4 @@
-# Ứng dụng trích xuất hóa đơn PDF và xuất Excel, Word
+# Ứng dụng trích xuất nhiều hóa đơn PDF hoặc ZIP và xuất Excel, Word tổng hợp
 
 ## Cài đặt
 
