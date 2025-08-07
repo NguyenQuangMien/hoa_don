@@ -1,14 +1,15 @@
-import re
-import pdfplumber
 import pandas as pd
-from io import BytesIO
+import io
 from docx import Document
 from docx.shared import Pt
 from docx.oxml.ns import qn
+from zipfile import ZipFile
+import pdfplumber
+import re
 
 def extract_data_from_pdf(file):
     data = {
-        "Mã tỉnh": "YBI",  # cố định
+        "Mã tỉnh": "YBI",
         "Số hóa đơn": "",
         "Mã EVN": "",
         "Mã tháng (yyyyMM)": "",
@@ -22,110 +23,99 @@ def extract_data_from_pdf(file):
         "Số tiền dự kiến": "",
         "Ghi chú": ""
     }
-    
+
     with pdfplumber.open(file) as pdf:
-        first_page = pdf.pages[0]
-        text = first_page.extract_text()
+        page = pdf.pages[0]
+        text = page.extract_text()
 
-        # Số hóa đơn
-        m = re.search(r"Số hóa đơn\s*:\s*(\d+)", text)
-        if m:
-            data["Số hóa đơn"] = m.group(1).strip()
+        # Trích xuất Số hóa đơn
+        so_hd_match = re.search(r"Số\s*:\s*(\d+)", text)
+        if so_hd_match:
+            data["Số hóa đơn"] = so_hd_match.group(1).strip()
 
-        # Mã EVN (Mã khách hàng)
-        m = re.search(r"Mã khách hàng\s*:\s*([A-Z0-9]+)", text)
-        if m:
-            data["Mã EVN"] = m.group(1).strip()
+        # Trích xuất Mã EVN
+        ma_kh_match = re.search(r"Mã khách hàng\s*\(Customer's Code\):\s*([A-Z0-9]+)", text)
+        if ma_kh_match:
+            data["Mã EVN"] = ma_kh_match.group(1).strip()
 
-        # Mã tháng (yyyyMM)
-        m = re.search(r"Điện tiêu thụ tháng\s*(\d+)\s*năm\s*(\d{4})", text)
-        if m:
-            month = int(m.group(1))
-            year = int(m.group(2))
-            data["Mã tháng (yyyyMM)"] = f"{year}{month:02d}"
+        # Trích xuất Mã tháng
+        ma_thang_match = re.search(r"(\d{6})", file.name)
+        if ma_thang_match:
+            data["Mã tháng (yyyyMM)"] = ma_thang_match.group(1)
 
-        # Ngày đầu kỳ và ngày cuối kỳ
-        m = re.search(r"Điện tiêu thụ tháng \d+ năm \d{4} từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})", text)
-        if m:
-            data["Ngày đầu kỳ"] = m.group(1)
-            data["Ngày cuối kỳ"] = m.group(2)
+        # Trích xuất Ngày đầu kỳ và Ngày cuối kỳ từ chuỗi 'Điện tiêu thụ tháng ...'
+        match_date_range = re.search(
+            r"Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})", text
+        )
+        if match_date_range:
+            data["Ngày đầu kỳ"] = match_date_range.group(1)
+            data["Ngày cuối kỳ"] = match_date_range.group(2)
 
-        # Tổng chỉ số (kWh)
-        m = re.search(r'kWh\s*([\d.,]+)', text)
-        if m:
-            data["Tổng chỉ số"] = m.group(1).replace(',', '')
+        # Trích xuất Tổng chỉ số (số lượng kWh)
+        quantity_match = re.search(r"kWh\s+([\d\.]+)", text)
+        if quantity_match:
+            data["Tổng chỉ số"] = quantity_match.group(1)
 
-        # Số tiền (Cộng tiền hàng)
-        m = re.search(r'Cộng tiền hàng.*?([\d.,]+)', text, re.DOTALL)
-        if m:
-            data["Số tiền"] = m.group(1).replace(',', '')
+        # Trích xuất Số tiền
+        so_tien_match = re.search(r"Cộng tiền hàng.*?([\d\.]+)", text, re.DOTALL)
+        if so_tien_match:
+            data["Số tiền"] = so_tien_match.group(1).replace(".", "")
 
-        # Thuế VAT (Tiền thuế GTGT)
-        m = re.search(r'Tiền thuế GTGT.*?([\d.,]+)', text, re.DOTALL)
-        if m:
-            data["Thuế VAT"] = m.group(1).replace(',', '')
+        # Trích xuất Thuế VAT
+        vat_match = re.search(r"Tiền thuế GTGT.*?([\d\.]+)", text, re.DOTALL)
+        if vat_match:
+            data["Thuế VAT"] = vat_match.group(1).replace(".", "")
 
-        # Số tiền dự kiến (Tổng cộng tiền thanh toán)
-        m = re.search(r'Tổng cộng tiền thanh toán.*?([\d.,]+)', text, re.DOTALL)
-        if m:
-            data["Số tiền dự kiến"] = m.group(1).replace(',', '')
+        # Trích xuất Số tiền dự kiến (Tổng cộng tiền thanh toán)
+        tien_du_kien_match = re.search(r"Tổng cộng tiền thanh toán.*?([\d\.]+)", text, re.DOTALL)
+        if tien_du_kien_match:
+            data["Số tiền dự kiến"] = tien_du_kien_match.group(1).replace(".", "")
 
     return data
 
 def create_excel(data_list):
     df = pd.DataFrame(data_list)
 
-    columns_order = [
-        "Mã tỉnh", "Số hóa đơn", "Mã EVN", "Mã tháng (yyyyMM)", "Kỳ",
-        "Mã CSHT", "Ngày đầu kỳ", "Ngày cuối kỳ", "Tổng chỉ số",
-        "Số tiền", "Thuế VAT", "Số tiền dự kiến", "Ghi chú"
-    ]
-    df = df[columns_order]
+    # Định dạng cột ngày tháng là text (chuỗi)
+    for col in ["Ngày đầu kỳ", "Ngày cuối kỳ"]:
+        if col in df.columns:
+            df[col] = df[col].astype(str)
 
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Hóa đơn')
-        worksheet = writer.sheets['Hóa đơn']
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Hóa đơn")
+        worksheet = writer.sheets["Hóa đơn"]
+        worksheet.set_column("A:Z", 20)  # Tự động giãn cột
 
-        for i, col in enumerate(df.columns):
-            max_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
-            worksheet.set_column(i, i, max_len)
-
-        # Định dạng tất cả cột dạng text
-        fmt = writer.book.add_format({'num_format': '@'})
-        worksheet.set_column(0, len(df.columns)-1, None, fmt)
-
-    output.seek(0)
-    return output.read()
+    return output.getvalue()
 
 def create_word(data_list):
     document = Document()
+
+    # Thiết lập font Times New Roman cho toàn bộ văn bản
     style = document.styles['Normal']
     font = style.font
     font.name = 'Times New Roman'
-    font.size = Pt(14)
-    document.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+    font.size = Pt(12)
+    font.element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
 
-    document.add_heading('Dữ liệu hóa đơn', level=1)
+    # Tạo bảng với số cột = số trường dữ liệu
+    if data_list:
+        keys = list(data_list[0].keys())
+        table = document.add_table(rows=1, cols=len(keys))
+        hdr_cells = table.rows[0].cells
 
-    columns = [
-        "Mã tỉnh", "Số hóa đơn", "Mã EVN", "Mã tháng (yyyyMM)", "Kỳ",
-        "Mã CSHT", "Ngày đầu kỳ", "Ngày cuối kỳ", "Tổng chỉ số",
-        "Số tiền", "Thuế VAT", "Số tiền dự kiến", "Ghi chú"
-    ]
+        # Header
+        for i, key in enumerate(keys):
+            hdr_cells[i].text = key
 
-    table = document.add_table(rows=1, cols=len(columns))
-    hdr_cells = table.rows[0].cells
-    for i, col_name in enumerate(columns):
-        hdr_cells[i].text = col_name
+        # Nội dung
+        for data in data_list:
+            row_cells = table.add_row().cells
+            for i, key in enumerate(keys):
+                row_cells[i].text = str(data.get(key, ""))
 
-    for data in data_list:
-        row_cells = table.add_row().cells
-        for i, col_name in enumerate(columns):
-            val = data.get(col_name, "")
-            row_cells[i].text = str(val)
-
-    output = BytesIO()
-    document.save(output)
-    output.seek(0)
-    return output.read()
+    word_buffer = io.BytesIO()
+    document.save(word_buffer)
+    word_buffer.seek(0)
+    return word_buffer.getvalue()
