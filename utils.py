@@ -3,7 +3,7 @@ from io import BytesIO
 from docx import Document
 import re
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import numbers
+from openpyxl.styles import Alignment
 
 def extract_data_from_pdf(text):
     data = {}
@@ -34,8 +34,11 @@ def extract_data_from_pdf(text):
     # Mã CSHT cố định
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Ngày đầu kỳ và ngày cuối kỳ
-    match_period = re.search(r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})', text)
+    # Ngày đầu kỳ và ngày cuối kỳ theo chuỗi mô tả
+    match_period = re.search(
+        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})',
+        text
+    )
     if match_period:
         data['Ngày đầu kỳ'] = match_period.group(1)
         data['Ngày cuối kỳ'] = match_period.group(2)
@@ -43,7 +46,7 @@ def extract_data_from_pdf(text):
         data['Ngày đầu kỳ'] = ''
         data['Ngày cuối kỳ'] = ''
 
-    # Tổng chỉ số (nguyên bản)
+    # Tổng chỉ số (giữ nguyên chuỗi trong hóa đơn)
     match_kwh = re.search(r'kWh\s*([\d.,]+)', text)
     data['Tổng chỉ số'] = match_kwh.group(1) if match_kwh else ''
 
@@ -57,7 +60,7 @@ def extract_data_from_pdf(text):
     match_vat = re.search(r'Tiền thuế GTGT \(VAT amount\):\s*([\d.,]+)', text)
     data['Thuế VAT'] = match_vat.group(1) if match_vat else ''
 
-    # Số tiền dự kiến nguyên bản
+    # Số tiền dự kiến nguyên bản (Thành tiền)
     match_total = re.search(r'Thành tiền\s*:\s*([\d.,]+)', text)
     if not match_total:
         match_total = re.search(r'Tổng cộng thanh toán\s*:\s*([\d.,]+)', text)
@@ -72,13 +75,12 @@ def extract_data_from_pdf(text):
 def create_excel(df):
     from openpyxl import Workbook
     from openpyxl.utils.dataframe import dataframe_to_rows
-    from openpyxl.styles import Alignment
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Sheet1"
 
-    # Viết tiêu đề
+    # Viết tiêu đề giữ nguyên thứ tự cột
     headers = list(df.columns)
     ws.append(headers)
 
@@ -86,7 +88,7 @@ def create_excel(df):
     for row in dataframe_to_rows(df, index=False, header=False):
         ws.append(row)
 
-    # Định dạng cột: tất cả dưới dạng Text, dãn cột tự động
+    # Định dạng tất cả cột dạng Text, dãn cột tự động
     for col_idx, col in enumerate(ws.columns, 1):
         max_length = 0
         col_letter = get_column_letter(col_idx)
