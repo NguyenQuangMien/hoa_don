@@ -1,4 +1,4 @@
-ststreamlit
+streamlit
 pandas
 openpyxl
 python-docx
