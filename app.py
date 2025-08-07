@@ -42,6 +42,13 @@ if uploaded_files:
 
     if data_list:
         df = pd.DataFrame(data_list)
+
+        # Đảm bảo các cột không bị rỗng, thay thế giá trị None hoặc ''
+        df['Số tiền'] = df['Số tiền'].replace('', '0').fillna('0')
+        df['Thuế VAT'] = df['Thuế VAT'].replace('', '0').fillna('0')
+        df['Số tiền dự kiến'] = df['Số tiền dự kiến'].replace('', '0').fillna('0')
+        df['Ghi chú'] = df['Ghi chú'].fillna('')
+
         st.write(f"Đã trích xuất {len(df)} hóa đơn.")
         st.dataframe(df)
 
@@ -60,4 +67,3 @@ if uploaded_files:
             file_name="hoa_don_tong_hop.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-
