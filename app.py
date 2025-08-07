@@ -18,7 +18,6 @@ data_list = []
 if uploaded_files:
     for uploaded_file in uploaded_files:
         if uploaded_file.name.endswith('.zip'):
-            # Xử lý file zip
             with zipfile.ZipFile(uploaded_file) as z:
                 for filename in z.namelist():
                     if filename.endswith('.pdf'):
@@ -31,7 +30,6 @@ if uploaded_files:
                             if data:
                                 data_list.append(data)
         else:
-            # Xử lý file PDF
             with pdfplumber.open(uploaded_file) as pdf:
                 text = ""
                 for page in pdf.pages:
@@ -43,7 +41,7 @@ if uploaded_files:
     if data_list:
         df = pd.DataFrame(data_list)
 
-        # Đảm bảo các cột không bị rỗng, thay thế giá trị None hoặc ''
+        # Đảm bảo các cột không bị rỗng
         df['Số tiền'] = df['Số tiền'].replace('', '0').fillna('0')
         df['Thuế VAT'] = df['Thuế VAT'].replace('', '0').fillna('0')
         df['Số tiền dự kiến'] = df['Số tiền dự kiến'].replace('', '0').fillna('0')
