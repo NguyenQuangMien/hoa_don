@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import xlsxwriter
 from io import BytesIO
 from docx import Document
 from docx.shared import Pt
@@ -18,11 +19,6 @@ def extract_data_from_pdf(file):
 
         # Mã tỉnh cố định
         data["Mã tỉnh"] = "YBI"
-
-        # Mã tháng (yyyyMM)
-        # Lấy từ tên file hoặc placeholder (cần người dùng cung cấp tên file)
-        # Giả sử lấy từ file name ví dụ: CSHT_YBI_00014_07-2025.pdf -> 202507
-        # Nếu cần có thể bổ sung hàm lấy tháng năm từ tên file
 
         # Kỳ
         data["Kỳ"] = "1"
@@ -50,25 +46,23 @@ def extract_data_from_pdf(file):
         match = re.search(r'Tiền thuế GTGT.*\n.*([\d\.]+)', text)
         data["Thuế VAT"] = match.group(1) if match else ""
 
-        # Số tiền dự kiến (có thể là Tổng cộng tiền thanh toán hoặc để trống)
+        # Số tiền dự kiến
         match = re.search(r'Tổng cộng tiền thanh toán.*\n.*([\d\.]+)', text)
         data["Số tiền dự kiến"] = match.group(1) if match else ""
 
-        # Số hóa đơn: lấy từ tên file hoặc chưa có
+        # Số hóa đơn: chưa có cách lấy, để trống
         data["Số hóa đơn"] = ""
 
     return data
 
 def create_excel(data_list):
     df = pd.DataFrame(data_list)
-    # Định dạng cột là text để tránh mất số 0 đầu
     writer = BytesIO()
     with pd.ExcelWriter(writer, engine='xlsxwriter') as writer_obj:
         df.to_excel(writer_obj, index=False, sheet_name='Sheet1')
         workbook = writer_obj.book
         worksheet = writer_obj.sheets['Sheet1']
 
-        # Set định dạng text cho từng cột
         fmt_text = workbook.add_format({'num_format': '@'})
         for i, col in enumerate(df.columns):
             worksheet.set_column(i, i, 20, fmt_text)
@@ -78,14 +72,12 @@ def create_excel(data_list):
 def create_word(data_list):
     document = Document()
 
-    # Cài font chữ Times New Roman tiếng Việt
     style = document.styles['Normal']
     font = style.font
     font.name = 'Times New Roman'
     font.size = Pt(12)
     font._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
 
-    # Tạo bảng
     if not data_list:
         return document
 
@@ -95,7 +87,7 @@ def create_word(data_list):
     for i, col_name in enumerate(df.columns):
         hdr_cells[i].text = col_name
 
-    for index, row in df.iterrows():
+    for _, row in df.iterrows():
         row_cells = table.add_row().cells
         for i, col in enumerate(df.columns):
             row_cells[i].text = str(row[col])
