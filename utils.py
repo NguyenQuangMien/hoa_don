@@ -32,7 +32,7 @@ def extract_data_from_pdf(text):
     # Mã CSHT cố định
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Ngày đầu kỳ (cố lấy từ mô tả, nếu không có để rỗng)
+    # Ngày đầu kỳ và ngày cuối kỳ
     match_period = re.search(r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})', text)
     if match_period:
         data['Ngày đầu kỳ'] = match_period.group(1)
@@ -41,7 +41,7 @@ def extract_data_from_pdf(text):
         data['Ngày đầu kỳ'] = ''
         data['Ngày cuối kỳ'] = ''
 
-    # Tổng chỉ số (nguyên bản, cố lấy số trước kWh)
+    # Tổng chỉ số (nguyên bản)
     match_kwh = re.search(r'kWh\s*([\d.,]+)', text)
     data['Tổng chỉ số'] = match_kwh.group(1) if match_kwh else ''
 
@@ -66,7 +66,21 @@ def extract_data_from_pdf(text):
 
     return data
 
+def clean_number(value):
+    if not value:
+        return 0
+    v = value.replace('.', '').replace(',', '.')
+    try:
+        return float(v)
+    except:
+        return 0
+
 def create_excel(df):
+    numeric_cols = ['Tổng chỉ số', 'Số tiền', 'Thuế VAT', 'Số tiền dự kiến']
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = df[col].apply(clean_number)
+
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Sheet1')
