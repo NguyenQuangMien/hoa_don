@@ -3,50 +3,29 @@ from utils import extract_data_from_pdf, create_excel, create_word
 
 st.title("Trích xuất dữ liệu hóa đơn PDF và xuất Excel, Word")
 
-uploaded_files = st.file_uploader(
-    "Chọn nhiều file PDF hóa đơn hoặc file ZIP chứa PDF",
-    type=["pdf", "zip"],
-    accept_multiple_files=True
-)
-
-data_list = []
+uploaded_files = st.file_uploader("Chọn file hóa đơn PDF", type=["pdf"], accept_multiple_files=True)
 
 if uploaded_files:
-    for uploaded_file in uploaded_files:
-        if uploaded_file.name.endswith(".zip"):
-            import zipfile
-            import io
-            with zipfile.ZipFile(io.BytesIO(uploaded_file.read())) as z:
-                for filename in z.namelist():
-                    if filename.endswith(".pdf"):
-                        with z.open(filename) as f:
-                            pdf_bytes = f.read()
-                            st.write(f"Đang xử lý file: {filename}")
-                            data = extract_data_from_pdf(pdf_bytes)
-                            st.json(data)
-                            data_list.append(data)
-        else:
-            pdf_bytes = uploaded_file.read()
-            st.write(f"Đang xử lý file: {uploaded_file.name}")
-            data = extract_data_from_pdf(pdf_bytes)
-            st.json(data)
-            data_list.append(data)
+    data_list = []
+    for file in uploaded_files:
+        st.write(f"Đang xử lý file: {file.name}")
+        data = extract_data_from_pdf(file)
+        st.json(data)
+        data_list.append(data)
 
-if data_list:
-    df = st.dataframe(data_list)
+    if data_list:
+        excel_data = create_excel(data_list)
+        st.download_button(
+            label="Tải file Excel",
+            data=excel_data,
+            file_name="Hoa_don.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
-    excel_data = create_excel(data_list)
-    word_data = create_word(data_list)
-
-    st.download_button(
-        label="Tải file Excel",
-        data=excel_data,
-        file_name="hoa_don.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    st.download_button(
-        label="Tải file Word",
-        data=word_data,
-        file_name="hoa_don.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+        word_data = create_word(data_list)
+        st.download_button(
+            label="Tải file Word",
+            data=word_data,
+            file_name="Hoa_don.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
