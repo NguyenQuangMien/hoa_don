@@ -2,6 +2,8 @@ import pandas as pd
 from io import BytesIO
 from docx import Document
 import re
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import numbers
 
 def extract_data_from_pdf(text):
     data = {}
@@ -66,25 +68,41 @@ def extract_data_from_pdf(text):
 
     return data
 
-def clean_number(value):
-    if not value:
-        return 0
-    v = value.replace('.', '').replace(',', '.')
-    try:
-        return float(v)
-    except:
-        return 0
 
 def create_excel(df):
-    numeric_cols = ['Tổng chỉ số', 'Số tiền', 'Thuế VAT', 'Số tiền dự kiến']
-    for col in numeric_cols:
-        if col in df.columns:
-            df[col] = df[col].apply(clean_number)
+    from openpyxl import Workbook
+    from openpyxl.utils.dataframe import dataframe_to_rows
+    from openpyxl.styles import Alignment
 
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+
+    # Viết tiêu đề
+    headers = list(df.columns)
+    ws.append(headers)
+
+    # Viết dữ liệu
+    for row in dataframe_to_rows(df, index=False, header=False):
+        ws.append(row)
+
+    # Định dạng cột: tất cả dưới dạng Text, dãn cột tự động
+    for col_idx, col in enumerate(ws.columns, 1):
+        max_length = 0
+        col_letter = get_column_letter(col_idx)
+        for cell in col:
+            cell.number_format = '@'  # Định dạng Text
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+            cell.alignment = Alignment(horizontal='left', vertical='center')
+        adjusted_width = max_length + 2
+        ws.column_dimensions[col_letter].width = adjusted_width
+
+    # Lưu vào BytesIO
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    wb.save(output)
     return output.getvalue()
+
 
 def create_word(df):
     doc = Document()
