@@ -6,16 +6,16 @@ import re
 def extract_data_from_pdf(text):
     data = {}
 
-    # Số hóa đơn
+    # Mã tỉnh cố định
+    data['Mã tỉnh'] = 'YBI'
+
+    # Số hóa đơn (No)
     match_invoice = re.search(r'Số \(No\):\s*(\d+)', text)
     data['Số hóa đơn'] = match_invoice.group(1) if match_invoice else ''
 
     # Mã EVN (Mã khách hàng)
     match_customer_code = re.search(r'Mã khách hàng \(Customer\'s Code\):\s*([A-Z0-9]+)', text)
     data['Mã EVN'] = match_customer_code.group(1) if match_customer_code else ''
-
-    # Mã tỉnh
-    data['Mã tỉnh'] = 'YBI' if data['Mã EVN'].startswith('PA100101') else ''
 
     # Mã tháng yyyyMM từ ngày hóa đơn
     match_date = re.search(r'Ngày \(Date\) (\d{1,2}) tháng (\d{1,2}) năm (\d{4})', text)
@@ -26,13 +26,13 @@ def extract_data_from_pdf(text):
     else:
         data['Mã tháng (yyyyMM)'] = ''
 
-    # Kỳ
+    # Kỳ mặc định 1
     data['Kỳ'] = '1'
 
     # Mã CSHT cố định
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Ngày đầu kỳ và ngày cuối kỳ
+    # Ngày đầu kỳ (cố lấy từ mô tả, nếu không có để rỗng)
     match_period = re.search(r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{2}/\d{2}/\d{4}) đến ngày (\d{2}/\d{2}/\d{4})', text)
     if match_period:
         data['Ngày đầu kỳ'] = match_period.group(1)
@@ -41,23 +41,21 @@ def extract_data_from_pdf(text):
         data['Ngày đầu kỳ'] = ''
         data['Ngày cuối kỳ'] = ''
 
-    # Tổng chỉ số (nguyên bản)
-    match_kwh = re.search(r'Tổng số kWh:\s*([\d.,]+)', text)
-    if not match_kwh:
-        match_kwh = re.search(r'kWh\s*([\d.,]+)', text)
+    # Tổng chỉ số (nguyên bản, cố lấy số trước kWh)
+    match_kwh = re.search(r'kWh\s*([\d.,]+)', text)
     data['Tổng chỉ số'] = match_kwh.group(1) if match_kwh else ''
 
-    # Số tiền (nguyên bản)
+    # Số tiền nguyên bản
     match_amount = re.search(r'Cộng tiền hàng \(Total amount\):\s*([\d.,]+)', text)
     if not match_amount:
         match_amount = re.search(r'Tổng cộng tiền thanh toán\s*:\s*([\d.,]+)', text)
     data['Số tiền'] = match_amount.group(1) if match_amount else ''
 
-    # Thuế VAT (nguyên bản)
+    # Thuế VAT nguyên bản
     match_vat = re.search(r'Tiền thuế GTGT \(VAT amount\):\s*([\d.,]+)', text)
     data['Thuế VAT'] = match_vat.group(1) if match_vat else ''
 
-    # Số tiền dự kiến (nguyên bản)
+    # Số tiền dự kiến nguyên bản
     match_total = re.search(r'Thành tiền\s*:\s*([\d.,]+)', text)
     if not match_total:
         match_total = re.search(r'Tổng cộng thanh toán\s*:\s*([\d.,]+)', text)
