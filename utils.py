@@ -34,10 +34,11 @@ def extract_data_from_pdf(text):
     # Mã CSHT cố định
     data['Mã CSHT'] = 'CSHT_YBI_00014'
 
-    # Ngày đầu kỳ và ngày cuối kỳ theo chuỗi mô tả, regex linh hoạt hơn
+    # Ngày đầu kỳ và ngày cuối kỳ với regex linh hoạt, cho phép khoảng trắng và xuống dòng
     match_period = re.search(
-        r'Điện tiêu thụ tháng \d+ năm \d+ từ ngày (\d{1,2}/\d{1,2}/\d{4}) đến ngày (\d{1,2}/\d{1,2}/\d{4})',
-        text
+        r'Điện tiêu thụ tháng \d+ năm \d+\s*.*?từ ngày\s*(\d{1,2}/\d{1,2}/\d{4})\s*đến ngày\s*(\d{1,2}/\d{1,2}/\d{4})',
+        text,
+        re.DOTALL | re.IGNORECASE
     )
     if match_period:
         data['Ngày đầu kỳ'] = match_period.group(1)
